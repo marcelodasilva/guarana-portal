@@ -1,7 +1,7 @@
 
 export interface OptionsSingle {
     name: string
-    value?: Number
+    value?: number
     default?: boolean
 }
 
@@ -17,6 +17,6 @@ export type OptionsReceipt = OptionsGroupReceipt | OptionsSingle
 export interface ReceiptShape {
     name: string
     ingredients: OptionsReceipt[]
-    value: Number,
+    value: number,
     size?: 300 | 500
 }

@@ -1,7 +1,6 @@
-import ReceiptForm from "./ui/form";
+import { receipts } from "@/lib/drinks"
+import OrderForm from "./ui/form"
 
-export default async function Home() {
-  const response = await fetch("http://localhost:3000/api")
-  const data = await response.json()
-  return <ReceiptForm receipts={data.receipts}  />
+export default function Home() {
+    return <OrderForm receipts={receipts} />
 }
