@@ -144,7 +144,7 @@ export default function OrderForm({ receipts }: OrderFormProps) {
     const message = generateMessage();
     if (!message) return;
 
-    const phone = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || "";
+    const phone = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || "+5593991586639";
     if (!phone) {
       setToast({ message: "Configure o número do WhatsApp no servidor", type: "error" });
       return;
