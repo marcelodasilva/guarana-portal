@@ -28,7 +28,6 @@ export default function OrderForm({ receipts }: OrderFormProps) {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [deliveryTime, setDeliveryTime] = useState("");
   const [customizingIndex, setCustomizingIndex] = useState<{
     drinkIndex: number;
   } | null>(null);
@@ -108,11 +107,6 @@ export default function OrderForm({ receipts }: OrderFormProps) {
     lines.push(`💰 *TOTAL DO PEDIDO:* ${formatCurrency(totalValue)}`);
     lines.push("━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
-    if (deliveryTime) {
-      const time = new Date(deliveryTime);
-      lines.push(`🕐 *Horário de entrega:* ${time.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`);
-    }
-
     lines.push("");
     lines.push("_Obrigado por pedir! Em breve entraremos em contato._ ✨");
 
@@ -146,11 +140,22 @@ export default function OrderForm({ receipts }: OrderFormProps) {
 
   return (
     <form className="max-w-xl mx-auto p-4 space-y-6" onSubmit={handleSubmit}>
-      <h1 className="text-2xl font-bold text-center">Faça seu Pedido!</h1>
+      <header className="text-center space-y-2 py-4">
+        <div className="flex items-center justify-center gap-2">
+          <span className="text-4xl">🍋</span>
+          <h1 className="text-3xl font-extrabold tracking-tight text-primary">
+            Guaraná da Sasá
+          </h1>
+          <span className="text-4xl">🥤</span>
+        </div>
+        <p className="text-muted-foreground text-sm">
+          Faça seu pedido e receba no seu apartamento
+        </p>
+      </header>
 
       {/* Condo selector */}
       <section className="space-y-2">
-        <h2 className="font-semibold text-lg">Condomínio</h2>
+        <h2 className="font-semibold text-lg text-primary">Condomínio</h2>
         <div className="flex gap-2">
           {(["Estilo Golf", "Park Golf"] as CondoType[]).map((c) => (
             <button
@@ -228,12 +233,12 @@ export default function OrderForm({ receipts }: OrderFormProps) {
 
       {/* Drink menu */}
       <section className="space-y-3">
-        <h2 className="font-semibold text-lg">Escolha os Drinks</h2>
+        <h2 className="font-semibold text-lg text-primary">Escolha os Drinks</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {receipts.map((drink, idx) => (
             <div
-              key={drink.name}
-              className="border rounded-lg p-3 space-y-2 hover:shadow-md transition"
+              key={`${drink.name}-${drink.size}`}
+              className="border rounded-lg p-4 space-y-3 hover:shadow-lg hover:border-accent transition bg-card"
             >
               <div>
                 <p className="font-medium">{drink.name}</p>
@@ -257,7 +262,7 @@ export default function OrderForm({ receipts }: OrderFormProps) {
       {/* Cart */}
       {cart.length > 0 && (
         <section className="space-y-2">
-          <h2 className="font-semibold text-lg">
+          <h2 className="font-semibold text-lg text-primary">
             Seu Pedido ({cart.length} {cart.length === 1 ? "item" : "itens"})
           </h2>
           <div className="space-y-2">
@@ -275,7 +280,7 @@ export default function OrderForm({ receipts }: OrderFormProps) {
               return (
                 <div
                   key={item.id}
-                  className="border rounded-lg p-3 text-sm space-y-1"
+                  className="border rounded-lg p-4 text-sm space-y-2 bg-secondary/20"
                 >
                   <div className="flex justify-between items-start">
                     <div>
@@ -303,26 +308,18 @@ export default function OrderForm({ receipts }: OrderFormProps) {
               );
             })}
           </div>
-          <p className="text-lg font-bold text-right">
+          <p className="text-lg font-bold text-right text-primary">
             Total: {formatCurrency(totalValue)}
           </p>
         </section>
       )}
 
-      {/* Delivery time */}
-      <section className="space-y-1">
-        <label htmlFor="delivery-time" className="text-sm font-medium">Horário de Entrega</label>
-        <input
-          id="delivery-time"
-          type="time"
-          value={deliveryTime}
-          onChange={(e) => setDeliveryTime(e.target.value)}
-          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-        />
-      </section>
-
       {/* Submit */}
-      <Button className="w-full py-6 text-lg" disabled={!isValid} type="submit">
+      <Button
+        className="w-full py-6 text-lg font-bold bg-accent text-accent-foreground hover:bg-accent/80"
+        disabled={!isValid}
+        type="submit"
+      >
         Enviar Pedido via WhatsApp
       </Button>
 
@@ -361,7 +358,8 @@ function DrinkCustomizer({ drink, onConfirm, onCancel }: DrinkCustomizerProps) {
         const group = ing as OptionsGroupReceipt;
         const defaultOpt = group.options.find((o) => o.default);
         if (defaultOpt) init[group.name] = defaultOpt.name;
-        else if (group.options.length > 0) init[group.name] = group.options[0].name;
+        else if (group.options.length > 0)
+          init[group.name] = group.options[0].name;
       }
     }
     return init;
@@ -392,7 +390,7 @@ function DrinkCustomizer({ drink, onConfirm, onCancel }: DrinkCustomizerProps) {
         </p>
 
         {drink.ingredients.map((ing) => {
-          const keyName = ing.name;
+          const keyName = typeof ing === 'object' && 'name' in ing ? ing.name : String(ing);
           return (
             <div key={keyName} className="space-y-1">
               {"options" in ing ? (
