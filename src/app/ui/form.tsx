@@ -25,6 +25,8 @@ export default function OrderForm({ receipts }: OrderFormProps) {
   const [condo, setCondo] = useState<CondoType | null>(null);
   const [block, setBlock] = useState("");
   const [apartment, setApartment] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [deliveryTime, setDeliveryTime] = useState("");
   const [customizingIndex, setCustomizingIndex] = useState<{
@@ -70,20 +72,22 @@ export default function OrderForm({ receipts }: OrderFormProps) {
     if (!condo || cart.length === 0) return "";
 
     const lines: string[] = [
-      "*Pedido Guaraná da Sasá*",
+      "🏃‍♂️ *PEDIDO - GUARANÁ DA SASÁ* 🏃‍♂️",
+      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
       "",
-      `*Local:* ${condo}`,
-      `*Bloco:* ${block}`,
-      `*Apartamento:* ${apartment}`,
+      `📍 *Local:* _${condo}_`,
+      `🏢 *Bloco:* _${block}_`,
+      `🏠 *Apartamento:* _${apartment}_`,
+      `👤 *Cliente:* ${customerName}`,
+      `📱 *WhatsApp:* ${customerPhone}`,
       "",
     ];
 
     cart.forEach((item, i) => {
       const total = Number(item.drink.value) + calculateExtraValue(item);
       const sizeLabel = item.drink.size ? `${item.drink.size}ml` : "";
-      lines.push(
-        `*Pedido ${i + 1}:* ${item.drink.name} (${sizeLabel}) - ${formatCurrency(total)}`,
-      );
+      lines.push(`🍹 *Pedido ${i + 1}:* ${item.drink.name} (${sizeLabel})`);
+      lines.push(`   💰 *Valor:* ${formatCurrency(total)}`);
 
       const ingredientNames: string[] = [];
       for (const ingredient of item.drink.ingredients) {
@@ -94,18 +98,23 @@ export default function OrderForm({ receipts }: OrderFormProps) {
           ingredientNames.push((ingredient as OptionsSingle).name);
         }
       }
-      lines.push(`  Ingredientes: ${ingredientNames.join(", ")}`);
+      if (ingredientNames.length > 0) {
+        lines.push(`   🥤 *Ingredientes:* ${ingredientNames.join(", ")}`);
+      }
+      lines.push("");
     });
 
-    lines.push("");
-    lines.push(`*Total: ${formatCurrency(totalValue)}*`);
+    lines.push("━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    lines.push(`💰 *TOTAL DO PEDIDO:* ${formatCurrency(totalValue)}`);
+    lines.push("━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
 
     if (deliveryTime) {
       const time = new Date(deliveryTime);
-      lines.push(
-        `*Horário de entrega:* ${time.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`,
-      );
+      lines.push(`🕐 *Horário de entrega:* ${time.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`);
     }
+
+    lines.push("");
+    lines.push("_Obrigado por pedir! Em breve entraremos em contato._ ✨");
 
     return lines.join("\n");
   };
@@ -127,7 +136,13 @@ export default function OrderForm({ receipts }: OrderFormProps) {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  const isValid = condo && block && apartment && cart.length > 0;
+  const isValid =
+    condo &&
+    block &&
+    apartment &&
+    customerName &&
+    customerPhone &&
+    cart.length > 0;
 
   return (
     <form className="max-w-xl mx-auto p-4 space-y-6" onSubmit={handleSubmit}>
@@ -178,6 +193,34 @@ export default function OrderForm({ receipts }: OrderFormProps) {
             onChange={(e) => setApartment(e.target.value)}
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             placeholder="Ex: 102"
+            required
+          />
+        </div>
+      </section>
+
+      {/* Customer info */}
+      <section className="flex gap-3">
+        <div className="flex-1 space-y-1">
+          <label htmlFor="customer-name" className="text-sm font-medium">Seu Nome</label>
+          <input
+            id="customer-name"
+            type="text"
+            value={customerName}
+            onChange={(e) => setCustomerName(e.target.value)}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            placeholder="Ex: João Silva"
+            required
+          />
+        </div>
+        <div className="flex-1 space-y-1">
+          <label htmlFor="customer-phone" className="text-sm font-medium">WhatsApp</label>
+          <input
+            id="customer-phone"
+            type="tel"
+            value={customerPhone}
+            onChange={(e) => setCustomerPhone(e.target.value)}
+            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            placeholder="Ex: 11999999999"
             required
           />
         </div>
