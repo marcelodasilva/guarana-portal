@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type {
@@ -42,11 +42,14 @@ export default function OrderForm({ receipts }: OrderFormProps) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const savedCondo = localStorage.getItem(STORAGE_PREFIX + "condo");
-      const savedBlock = localStorage.getItem(STORAGE_PREFIX + "block") ?? "";
-      const savedApartment = localStorage.getItem(STORAGE_PREFIX + "apartment") ?? "";
-      const savedName = localStorage.getItem(STORAGE_PREFIX + "customerName") ?? "";
-      const savedPhone = localStorage.getItem(STORAGE_PREFIX + "customerPhone") ?? "";
+      const savedCondo = localStorage.getItem(`${STORAGE_PREFIX}condo`);
+      const savedBlock = localStorage.getItem(`${STORAGE_PREFIX}block`) ?? "";
+      const savedApartment =
+        localStorage.getItem(`${STORAGE_PREFIX}apartment`) ?? "";
+      const savedName =
+        localStorage.getItem(`${STORAGE_PREFIX}customerName`) ?? "";
+      const savedPhone =
+        localStorage.getItem(`${STORAGE_PREFIX}customerPhone`) ?? "";
 
       let loaded = false;
       if (savedCondo) {
@@ -74,36 +77,36 @@ export default function OrderForm({ receipts }: OrderFormProps) {
         setToast({ message: "Dados recuperados!", type: "success" });
         setTimeout(() => setToast(null), 2500);
       }
-    } catch (e) {
-      console.warn("Failed to load from localStorage", e);
+    } catch (_e) {
+      console.warn("Failed to load from localStorage", _e);
     }
   }, []);
 
   // Persist state changes to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_PREFIX + "condo", condo ?? "");
-    } catch (e) {}
+      localStorage.setItem(`${STORAGE_PREFIX}condo`, condo ?? "");
+    } catch (_e) {}
   }, [condo]);
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_PREFIX + "block", block);
-    } catch (e) {}
+      localStorage.setItem(`${STORAGE_PREFIX}block`, block);
+    } catch (_e) {}
   }, [block]);
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_PREFIX + "apartment", apartment);
-    } catch (e) {}
+      localStorage.setItem(`${STORAGE_PREFIX}apartment`, apartment);
+    } catch (_e) {}
   }, [apartment]);
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_PREFIX + "customerName", customerName);
-    } catch (e) {}
+      localStorage.setItem(`${STORAGE_PREFIX}customerName`, customerName);
+    } catch (_e) {}
   }, [customerName]);
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_PREFIX + "customerPhone", customerPhone);
-    } catch (e) {}
+      localStorage.setItem(`${STORAGE_PREFIX}customerPhone`, customerPhone);
+    } catch (_e) {}
   }, [customerPhone]);
 
   const addToCart = useCallback(
@@ -116,7 +119,10 @@ export default function OrderForm({ receipts }: OrderFormProps) {
       };
       setCart((prev) => [...prev, newItem]);
       setCustomizingIndex(null);
-      setToast({ message: `${receipts[drinkIndex].name} adicionado!`, type: "success" });
+      setToast({
+        message: `${receipts[drinkIndex].name} adicionado!`,
+        type: "success",
+      });
       setTimeout(() => setToast(null), 2500);
     },
     [receipts],
@@ -216,7 +222,10 @@ export default function OrderForm({ receipts }: OrderFormProps) {
 
     const phone = process.env.NEXT_PUBLIC_WHATSAPP_PHONE || "+5593991586639";
     if (!phone) {
-      setToast({ message: "Configure o número do WhatsApp no servidor", type: "error" });
+      setToast({
+        message: "Configure o número do WhatsApp no servidor",
+        type: "error",
+      });
       return;
     }
 
@@ -284,7 +293,7 @@ export default function OrderForm({ receipts }: OrderFormProps) {
       {/* Localização */}
       <section className="flex gap-3">
         <div className="flex-1 space-y-1">
-          <label htmlFor="block-input" className="text-sm font-medium">Bloco (2 dígitos)</label>
+          <label htmlFor="block-input" className="text-sm font-medium">Bloco</label>
           <input
             id="block-input"
             type="number"
@@ -302,7 +311,7 @@ export default function OrderForm({ receipts }: OrderFormProps) {
           />
         </div>
         <div className="flex-1 space-y-1">
-          <label htmlFor="apartment-input" className="text-sm font-medium">Apartamento (até 3 dígitos)</label>
+          <label htmlFor="apartment-input" className="text-sm font-medium">Apartamento</label>
           <input
             id="apartment-input"
             type="number"
@@ -599,12 +608,11 @@ function DrinkCustomizer({ drink, onConfirm, onCancel }: DrinkCustomizerProps) {
             const isExclusive = info?.exclusive ?? false;
             return (
               <div key={keyName} className="space-y-1">
-                <label className="text-sm font-medium">{group.name}</label>
-                <div className="space-y-1">
+                <fieldset className="space-y-1">
+                  <legend className="text-sm font-medium">{group.name}</legend>
                   {group.options.map((opt) => {
                     const selectedArray = selections[group.name] || [];
                     const isChecked = selectedArray.includes(opt.name);
-                    const InputComponent = isExclusive ? "radio" : "checkbox";
                     return (
                       <label
                         key={opt.name}
@@ -626,7 +634,7 @@ function DrinkCustomizer({ drink, onConfirm, onCancel }: DrinkCustomizerProps) {
                       </label>
                     );
                   })}
-                </div>
+                </fieldset>
               </div>
             );
           } else {
