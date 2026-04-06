@@ -160,41 +160,12 @@ export default function OrderForm({ receipts }: OrderFormProps) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      const savedCondo = localStorage.getItem(`${STORAGE_PREFIX}condo`);
-      const savedBlock = localStorage.getItem(`${STORAGE_PREFIX}block`) ?? "";
-      const savedApartment =
-        localStorage.getItem(`${STORAGE_PREFIX}apartment`) ?? "";
-      const savedName =
-        localStorage.getItem(`${STORAGE_PREFIX}customerName`) ?? "";
-      const savedPhone =
-        localStorage.getItem(`${STORAGE_PREFIX}customerPhone`) ?? "";
-
-      let loaded = false;
-      if (savedCondo) {
-        setCondo(savedCondo as CondoType);
-        loaded = true;
-      }
-      if (savedBlock) {
-        setBlock(savedBlock);
-        loaded = true;
-      }
-      if (savedApartment) {
-        setApartment(savedApartment);
-        loaded = true;
-      }
-      if (savedName) {
-        setCustomerName(savedName);
-        loaded = true;
-      }
-      if (savedPhone) {
-        setCustomerPhone(savedPhone);
-        loaded = true;
-      }
-
-      if (loaded) {
-        setToast({ message: "Dados recuperados!", type: "success" });
-        setTimeout(() => setToast(null), 2500);
-      }
+        setCondo((localStorage.getItem(`${STORAGE_PREFIX}condo`) ?? 'Estilo Golf') as CondoType);
+        setBlock(localStorage.getItem(`${STORAGE_PREFIX}block`) ?? "");
+        setApartment(localStorage.getItem(`${STORAGE_PREFIX}apartment`) ?? "");
+        setCustomerName(localStorage.getItem(`${STORAGE_PREFIX}customerName`) ?? "");
+        setCustomerPhone(localStorage.getItem(`${STORAGE_PREFIX}customerPhone`) ?? "");
+      
     } catch (_e) {
       console.warn("Failed to load from localStorage", _e);
     }
