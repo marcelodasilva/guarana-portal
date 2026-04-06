@@ -65,13 +65,6 @@ function CartIcon() {
   );
 }
 
-function CheckIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4 12l6 6L20 6" />
-    </svg>
-  );
-}
 
 function XIcon() {
   return (
@@ -124,55 +117,19 @@ function formatCurrency(val: number): string {
   });
 }
 
-/* ------------------------------------------------------------------ */
-/* Progress Steps                                                     */
-/* ------------------------------------------------------------------ */
-
-function ProgressSteps({
-  steps,
-  active,
-}: {
-  steps: string[];
-  active: number;
-}) {
-  return (
-    <div className="flex items-center gap-1 w-full">
-      {steps.map((label, i) => (
-        <div key={label} className="flex items-center" style={{ flex: 1 }}>
-          <div className="flex flex-col items-center gap-1">
-            <div
-              className={cn(
-                "size-7 rounded-full flex items-center justify-center text-xs font-bold transition-all",
-                i < active
-                  ? "bg-primary text-primary-foreground"
-                  : i === active
-                    ? "bg-primary/20 text-primary ring-2 ring-primary"
-                    : "bg-muted text-muted-foreground",
-              )}
-            >
-              {i < active ? <CheckIcon /> : i + 1}
-            </div>
-            <span
-              className={cn(
-                "text-xs font-medium transition-colors",
-                i <= active ? "text-primary" : "text-muted-foreground",
-              )}
-            >
-              {label}
-            </span>
-          </div>
-          {i < steps.length - 1 && (
-            <div
-              className={cn(
-                "h-0.5 flex-1 mx-1 rounded-full transition-all min-w-[8px] mt-[-8px]",
-                i < active ? "bg-primary" : "bg-muted",
-              )}
-            />
-          )}
-        </div>
-      ))}
-    </div>
-  );
+function calculateExtraValue(item: CartItem): number {
+  let extra = 0;
+  for (const ingredient of item.drink.ingredients) {
+    if ("options" in ingredient) {
+      const group = ingredient as OptionsGroupReceipt;
+      const selectedNames = item.customizations[group.name] || [];
+      for (const selectedName of selectedNames) {
+        const opt = group.options.find((o) => o.name === selectedName);
+        if (opt?.value) extra += Number(opt.value);
+      }
+    }
+  }
+  return extra * item.quantity;
 }
 
 /* ------------------------------------------------------------------ */
@@ -191,6 +148,7 @@ export default function OrderForm({ receipts }: OrderFormProps) {
   } | null>(null);
   const [toast, setToast] = useState<Toast>(null);
   const [ready, setReady] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
 
   // Entrance animation
   useEffect(() => {
@@ -330,58 +288,74 @@ export default function OrderForm({ receipts }: OrderFormProps) {
     if (!condo || cart.length === 0) return "";
 
     const lines: string[] = [
-      "🏃‍♂️ *PEDIDO - GUARANÁ DA SASÁ* 🏃‍♂️",
-      "━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+      "*GUARANÁ DA SASÁ*",
+      "━━━━━━━━━━━━━━━━━━━━",
       "",
-      `📍 *Local:* _${condo}_`,
-      `🏢 *Bloco:* _${block}_`,
-      `🏠 *Apartamento:* _${apartment}_`,
-      `👤 *Cliente:* ${customerName}`,
-      `📱 *WhatsApp:* ${customerPhone}`,
+      `*Local:* ${condo}`,
+      `*Endereço:* Bloco ${block}, Apto ${apartment}`,
+      `*Cliente:* ${customerName}`,
+      `*WhatsApp:* ${customerPhone}`,
       "",
     ];
 
-    cart.forEach((item, i) => {
+    cart.forEach((item) => {
       const total =
         Number(item.drink.value) * item.quantity + calculateExtraValue(item);
       const sizeLabel = item.drink.size ? `${item.drink.size}ml` : "";
-      lines.push(
-        `🍹 *Pedido ${i + 1}:* ${item.drink.name} (${sizeLabel}) x${item.quantity}`,
-      );
-      lines.push(
-        `   💰 *Valor unitário:* ${formatCurrency(Number(item.drink.value))}`,
-      );
-      lines.push(`   💰 *Total do item:* ${formatCurrency(total)}`);
+      lines.push(`*${item.drink.name}* (${sizeLabel}) x${item.quantity}`);
 
-      const ingredientNames: string[] = [];
-      for (const ingredient of item.drink.ingredients) {
-        if ("options" in ingredient) {
-          const group = ingredient as OptionsGroupReceipt;
-          const selectedArray = item.customizations[group.name] || [];
-          if (selectedArray.length > 0) {
-            ingredientNames.push(...selectedArray);
-          }
-        } else {
-          ingredientNames.push((ingredient as OptionsSingle).name);
+      // Build a map of group name to options for lookup
+      const groupMap = new Map<string, OptionsGroupReceipt>();
+      for (const ing of item.drink.ingredients) {
+        if ("options" in ing) {
+          groupMap.set(ing.name, ing as OptionsGroupReceipt);
         }
       }
-      if (ingredientNames.length > 0) {
-        lines.push(`   🥤 *Ingredientes:* ${ingredientNames.join(", ")}`);
+
+      // Build structured ingredients
+      const staticIngredients: string[] = [];
+      const groups: { name: string; options: string[] }[] = [];
+
+      for (const ing of item.drink.ingredients) {
+        if ("options" in ing) {
+          const group = ing as OptionsGroupReceipt;
+          const selected = item.customizations[group.name] || [];
+          if (selected.length > 0) {
+            groups.push({ name: group.name, options: selected });
+          }
+        } else {
+          staticIngredients.push((ing as OptionsSingle).name);
+        }
       }
+
+      // Static ingredients list
+      for (const name of staticIngredients) {
+        lines.push(`• ${name}`);
+      }
+
+      // Grouped options with names
+      for (const grp of groups) {
+        lines.push(`• *${grp.name}:*`);
+        for (const opt of grp.options) {
+          const groupObj = groupMap.get(grp.name);
+          const optObj = groupObj?.options.find(o => o.name === opt);
+          const extra = optObj?.value ? ` (+${formatCurrency(Number(optObj.value))})` : "";
+          lines.push(`    - ${opt}${extra}`);
+        }
+      }
+
+      lines.push(`*Total:* ${formatCurrency(total)}`);
       lines.push("");
     });
 
-    lines.push("━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    lines.push(`💰 *TOTAL DO PEDIDO:* ${formatCurrency(totalValue)}`);
-    lines.push("━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    lines.push("");
-    lines.push("_Obrigado por pedir! Em breve entraremos em contato._ ✨");
+    lines.push("━━━━━━━━━━━━━━━━━━━━");
+    lines.push(`*TOTAL:* ${formatCurrency(totalValue)}`);
+    lines.push("━━━━━━━━━━━━━━━━━━━━");
 
     return lines.join("\n");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = () => {
     const message = generateMessage();
     if (!message) return;
 
@@ -393,18 +367,11 @@ export default function OrderForm({ receipts }: OrderFormProps) {
 
     const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank", "noopener,noreferrer");
+    setCartOpen(false);
   };
 
   const isValid =
     condo && block && apartment && customerName && customerPhone && cart.length > 0;
-
-  // Progress steps
-  const steps = ["Local", "Nome", "Drinks", "Pedido"];
-  const activeStep = useMemo(() => {
-    if (!condo) return 0;
-    if (customerName && customerPhone) return cart.length > 0 ? 3 : 1;
-    return 1;
-  }, [condo, customerName, customerPhone, cart.length]);
 
   return (
     <>
@@ -458,7 +425,7 @@ export default function OrderForm({ receipts }: OrderFormProps) {
           </p>
         </header>
 
-        <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
+        <div className="mt-6 space-y-5">
           {/* ── Location ────────────────────────────── */}
           <section className="section-card animate-fade-up opacity-0 p-5 space-y-4 stagger-1">
             <div className="flex items-center gap-2">
@@ -579,15 +546,13 @@ export default function OrderForm({ receipts }: OrderFormProps) {
 
           {/* ── Menu ──────────────────────────────────── */}
           <section className="section-card animate-fade-up opacity-0 p-5 space-y-4 stagger-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-primary">
-                  <MenuIcon />
-                </span>
-                <h2 className="section-title inline-block mb-0">
-                  Cardápio
-                </h2>
-              </div>
+            <div className="flex items-center gap-2">
+              <span className="text-primary">
+                <MenuIcon />
+              </span>
+              <h2 className="section-title inline-block mb-0">
+                Cardápio
+              </h2>
             </div>
 
             <div className="grid grid-cols-1 gap-3">
@@ -626,167 +591,41 @@ export default function OrderForm({ receipts }: OrderFormProps) {
             </div>
           </section>
 
-          {/* ── Cart ──────────────────────────────────── */}
-          {cart.length > 0 && (
-            <section className="section-card animate-fade-up opacity-0 p-5 space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="text-primary">
-                  <CartIcon />
-                </span>
-                <h2 className="section-title inline-block mb-0">
-                  Seu Pedido
-                  <span className="ml-1 text-sm font-medium text-muted-foreground">
-                    ({cart.length} {cart.length === 1 ? "item" : "itens"})
-                  </span>
-                </h2>
-              </div>
+        </div>
 
-              <div className="space-y-2.5">
-                {cart.map((item) => {
-                  const itemTotal =
-                    Number(item.drink.value) * item.quantity +
-                    calculateExtraValue(item);
-                  const selectedNames: string[] = [];
-                  for (const ing of item.drink.ingredients) {
-                    if ("options" in ing) {
-                      const group = ing as OptionsGroupReceipt;
-                      selectedNames.push(
-                        ...(item.customizations[group.name] || []),
-                      );
-                    } else {
-                      selectedNames.push((ing as OptionsSingle).name);
-                    }
-                  }
-                  return (
-                    <div key={item.id} className="cart-item">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                          <p className="font-display font-bold text-sm">
-                            {item.drink.name}
-                            <span className="text-xs text-muted-foreground ml-1">
-                              ({item.drink.size}ml)
-                            </span>
-                          </p>
-                          {selectedNames.length > 0 && (
-                            <div className="mt-1 flex flex-wrap gap-1">
-                              {selectedNames.map((name) => (
-                                <span
-                                  key={name}
-                                  className="inline-flex px-1.5 py-0.5 rounded-full bg-primary/10 text-xs font-medium text-primary"
-                                >
-                                  {name}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="flex flex-col items-end gap-1.5 shrink-0">
-                          <p className="font-bold text-primary text-base">
-                            {formatCurrency(itemTotal)}
-                          </p>
-                          <div className="flex items-center gap-0">
-                            <button
-                              type="button"
-                              className="qty-btn"
-                              onClick={() => updateQuantity(item.id, -1)}
-                              disabled={item.quantity <= 1}
-                            >
-                              <MinusIcon />
-                            </button>
-                            <span className="px-3 text-sm font-semibold tabular-nums min-w-[1.5rem] text-center">
-                              {item.quantity}
-                            </span>
-                            <button
-                              type="button"
-                              className="qty-btn"
-                              onClick={() => updateQuantity(item.id, 1)}
-                            >
-                              <PlusIcon />
-                            </button>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeFromCart(item.id)}
-                            className="flex items-center gap-1 text-xs text-destructive/70 hover:text-destructive transition-colors"
-                          >
-                            <TrashIcon /> Remover
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="flex items-center justify-between border-t border-border/50 pt-3">
-                <span className="text-sm font-semibold text-muted-foreground">
-                  Total
-                </span>
-                <span
-                  className="font-display font-extrabold text-2xl text-primary"
-                >
-                  {formatCurrency(totalValue)}
-                </span>
-              </div>
-            </section>
-          )}
-
-          {/* Empty cart placeholder */}
-          {cart.length === 0 && ready && (
-            <div className="text-center py-10 section-card animate-fade-up stagger-4 opacity-0" style={{ border: "1px dashed var(--border)", background: "none", boxShadow: "none" }}>
-              <p className="text-sm font-medium text-muted-foreground">
-                Escolha um drink no cardápio para começar
-              </p>
-            </div>
-          )}
-
-          {/* ── Submit (inline, visible on mobile) ──── */}
-          {cart.length > 0 && (
-            <div className="flex justify-center pt-2">
-              <button
-                type="submit"
-                disabled={!isValid}
-                className={cn(
-                  "cta-button",
-                  !isValid && "opacity-50 cursor-not-allowed pointer-events-none",
-                )}
-              >
-                <SendIcon />
-                Enviar pedido via WhatsApp
-              </button>
-            </div>
-          )}
-        </form>
-
-        {/* ── Floating cart total ─────────────────────── */}
-        {cart.length > 0 && (
-          <div className="fixed bottom-6 left-0 right-0 z-40 flex justify-center px-4">
-            <div className="submit-bar rounded-full px-5 py-3 flex items-center gap-4 shadow-xl border">
-              <span className="text-sm font-semibold text-muted-foreground">
-                Total:
-              </span>
-              <span className="font-display font-extrabold text-xl text-primary">
-                {formatCurrency(totalValue)}
-              </span>
-              <button
-                type="submit"
-                disabled={!isValid}
-                onClick={(e: React.MouseEvent) => {
-                  if (isValid) handleSubmit(e as unknown as React.FormEvent);
-                }}
-                className={cn(
-                  "cta-button py-2.5 px-5 text-sm rounded-full",
-                  !isValid && "opacity-50 cursor-not-allowed pointer-events-none",
-                )}
-              >
-                <SendIcon />
-                Enviar
-              </button>
-            </div>
-          </div>
-        )}
       </main>
+
+      {/* ── Floating Cart Button ───────────────────────── */}
+      {cart.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setCartOpen(true)}
+          className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-5 py-3 rounded-full shadow-xl border-2 border-background bg-primary text-primary-foreground hover:bg-primary/90 transition-all animate-fade-up"
+        >
+          <CartIcon />
+          <span className="font-semibold text-sm">
+            {cart.length} {cart.length === 1 ? "Item" : "Itens"}
+          </span>
+        </button>
+      )}
+
+      {/* ── Cart Modal ───────────────────────────────────── */}
+      {cartOpen && (
+        <CartModal
+          items={cart}
+          total={totalValue}
+          isValid={Boolean(isValid)}
+          onClose={() => setCartOpen(false)}
+          onUpdateQuantity={updateQuantity}
+          onRemove={removeFromCart}
+          onSubmit={handleSubmit}
+          condo={condo || null}
+          block={block}
+          apartment={apartment}
+          customerName={customerName}
+          customerPhone={customerPhone}
+        />
+      )}
 
       {/* ── Customization Modal ───────────────────────── */}
       {customizingIndex && (
@@ -805,6 +644,169 @@ export default function OrderForm({ receipts }: OrderFormProps) {
 /* ------------------------------------------------------------------ */
 /* Drink Customizer Modal                                             */
 /* ------------------------------------------------------------------ */
+
+interface CartModalProps {
+  items: CartItem[];
+  total: number;
+  isValid: boolean;
+  onClose: () => void;
+  onUpdateQuantity: (id: string, delta: number) => void;
+  onRemove: (id: string) => void;
+  onSubmit: (e: React.FormEvent) => void;
+  condo: string | null;
+  block: string;
+  apartment: string;
+  customerName: string;
+  customerPhone: string;
+}
+
+function CartModal({
+  items,
+  total,
+  isValid,
+  onClose,
+  onUpdateQuantity,
+  onRemove,
+  onSubmit,
+  condo,
+  block,
+  apartment,
+  customerName,
+  customerPhone,
+}: CartModalProps) {
+  return (
+    <div className="modal-overlay" role="dialog" aria-modal="true" onClick={onClose}>
+      <div
+        className="modal-panel"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-start gap-4 mb-4">
+          <div>
+            <h2 className="font-display text-2xl font-extrabold tracking-tight text-primary">
+              Seu Pedido
+            </h2>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              {items.length} {items.length === 1 ? "item" : "itens"}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground p-1 rounded-lg transition-colors hover:bg-muted"
+            aria-label="Fechar"
+          >
+            <XIcon />
+          </button>
+        </div>
+
+        {/* Customer & location summary */}
+        <div className="grid grid-cols-2 gap-3 text-sm mb-4">
+          <div>
+            <span className="text-muted-foreground text-xs">Local</span>
+            <p className="font-medium">{condo || "—"}</p>
+          </div>
+          <div>
+            <span className="text-muted-foreground text-xs">Apartamento</span>
+            <p className="font-medium">{block}-{apartment}</p>
+          </div>
+          <div className="col-span-2">
+            <span className="text-muted-foreground text-xs">Cliente</span>
+            <p className="font-medium">{customerName}</p>
+          </div>
+        </div>
+
+        <div className="max-h-60 overflow-y-auto space-y-2 mb-4">
+          {items.map((item) => {
+            const itemTotal =
+              Number(item.drink.value) * item.quantity + calculateExtraValue(item);
+            const selectedNames: string[] = [];
+            for (const ing of item.drink.ingredients) {
+              if ("options" in ing) {
+                const group = ing as OptionsGroupReceipt;
+                selectedNames.push(...(item.customizations[group.name] || []));
+              } else {
+                selectedNames.push((ing as OptionsSingle).name);
+              }
+            }
+            return (
+              <div key={item.id} className="cart-item">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-display font-bold text-sm">
+                      {item.drink.name}
+                      <span className="text-xs text-muted-foreground ml-1">
+                        ({item.drink.size}ml)
+                      </span>
+                    </p>
+                    {selectedNames.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {selectedNames.map((name) => (
+                          <span
+                            key={name}
+                            className="inline-flex px-1.5 py-0.5 rounded-full bg-primary/10 text-xs font-medium text-primary"
+                          >
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end gap-1.5 shrink-0">
+                    <p className="font-bold text-primary text-sm">{formatCurrency(itemTotal)}</p>
+                    <div className="flex items-center gap-0">
+                      <button
+                        type="button"
+                        className="qty-btn"
+                        onClick={() => onUpdateQuantity(item.id, -1)}
+                        disabled={item.quantity <= 1}
+                      >
+                        <MinusIcon />
+                      </button>
+                      <span className="px-2 text-xs font-semibold tabular-nums">{item.quantity}</span>
+                      <button
+                        type="button"
+                        className="qty-btn"
+                        onClick={() => onUpdateQuantity(item.id, 1)}
+                      >
+                        <PlusIcon />
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onRemove(item.id)}
+                      className="flex items-center gap-1 text-xs text-destructive/70 hover:text-destructive"
+                    >
+                      <TrashIcon /> Remover
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="flex items-center justify-between border-t border-border/50 pt-3 mb-4">
+          <span className="text-sm font-semibold text-muted-foreground">Total</span>
+          <span className="font-display font-extrabold text-2xl text-primary">{formatCurrency(total)}</span>
+        </div>
+
+        <button
+          type="button"
+          disabled={!isValid}
+          onClick={onSubmit}
+          className={cn(
+            "w-full py-3 px-4 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all",
+            "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20",
+            !isValid && "opacity-50 cursor-not-allowed pointer-events-none",
+          )}
+        >
+          <SendIcon />
+          Enviar pedido via WhatsApp
+        </button>
+      </div>
+    </div>
+  );
+}
 
 interface DrinkCustomizerProps {
   drink: ReceiptShape;
