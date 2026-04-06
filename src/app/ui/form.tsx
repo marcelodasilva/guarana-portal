@@ -134,7 +134,7 @@ export default function OrderForm({ receipts }: OrderFormProps) {
         if (item.id !== id) return item;
         const newQty = Math.max(1, item.quantity + delta);
         return { ...item, quantity: newQty };
-      })
+      }),
     );
   }, []);
 
@@ -161,7 +161,10 @@ export default function OrderForm({ receipts }: OrderFormProps) {
   };
 
   const totalValue = cart.reduce(
-    (sum, item) => sum + Number(item.drink.value) * item.quantity + calculateExtraValue(item),
+    (sum, item) =>
+      sum +
+      Number(item.drink.value) * item.quantity +
+      calculateExtraValue(item),
     0,
   );
 
@@ -181,10 +184,15 @@ export default function OrderForm({ receipts }: OrderFormProps) {
     ];
 
     cart.forEach((item, i) => {
-      const total = Number(item.drink.value) * item.quantity + calculateExtraValue(item);
+      const total =
+        Number(item.drink.value) * item.quantity + calculateExtraValue(item);
       const sizeLabel = item.drink.size ? `${item.drink.size}ml` : "";
-      lines.push(`🍹 *Pedido ${i + 1}:* ${item.drink.name} (${sizeLabel}) x${item.quantity}`);
-      lines.push(`   💰 *Valor unitário:* ${formatCurrency(Number(item.drink.value))}`);
+      lines.push(
+        `🍹 *Pedido ${i + 1}:* ${item.drink.name} (${sizeLabel}) x${item.quantity}`,
+      );
+      lines.push(
+        `   💰 *Valor unitário:* ${formatCurrency(Number(item.drink.value))}`,
+      );
       lines.push(`   💰 *Total do item:* ${formatCurrency(total)}`);
 
       const ingredientNames: string[] = [];
@@ -242,269 +250,303 @@ export default function OrderForm({ receipts }: OrderFormProps) {
     cart.length > 0;
 
   return (
-    <form className="max-w-xl mx-auto p-4 space-y-6" onSubmit={handleSubmit}>
-      {/* Toast */}
-      {toast && (
-        <div
-          className={cn(
-            "fixed top-4 right-4 z-50 px-4 py-2 rounded-lg shadow-lg text-sm font-medium transition",
-            toast.type === "success" ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground"
-          )}
-        >
-          {toast.message}
-        </div>
-      )}
-
-      <header className="text-center space-y-2 py-4">
-        <div className="flex items-center justify-center gap-2">
-          <span className="text-4xl">🍋</span>
-          <h1 className="text-3xl font-extrabold tracking-tight text-primary">
-            Guaraná da Sasá
-          </h1>
-          <span className="text-4xl">🥤</span>
-        </div>
-        <p className="text-muted-foreground text-sm">
-          Faça seu pedido e receba no seu apartamento
-        </p>
-      </header>
-
-      {/* Condomínio */}
-      <section className="space-y-2">
-        <h2 className="font-semibold text-lg text-primary">Condomínio</h2>
-        <div className="flex gap-2">
-          {(["Estilo Golf", "Park Golf"] as CondoType[]).map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => setCondo(c)}
-              className={cn(
-                "flex-1 py-2 px-4 rounded-lg border text-center transition",
-                condo === c
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "border-border hover:bg-muted",
-              )}
-            >
-              {c}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* Localização */}
-      <section className="flex gap-3">
-        <div className="flex-1 space-y-1">
-          <label htmlFor="block-input" className="text-sm font-medium">Bloco</label>
-          <input
-            id="block-input"
-            type="number"
-            inputMode="numeric"
-            pattern="[0-9]{1,2}"
-            max={99}
-            value={block}
-            onChange={(e) => {
-              const val = e.target.value.replace(/\D/g, "").slice(0, 2);
-              setBlock(val);
-            }}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:ring-offset-1"
-            placeholder="Ex: 03"
-            required
-          />
-        </div>
-        <div className="flex-1 space-y-1">
-          <label htmlFor="apartment-input" className="text-sm font-medium">Apartamento</label>
-          <input
-            id="apartment-input"
-            type="number"
-            inputMode="numeric"
-            pattern="[0-9]{1,3}"
-            max={999}
-            value={apartment}
-            onChange={(e) => {
-              const val = e.target.value.replace(/\D/g, "").slice(0, 3);
-              setApartment(val);
-            }}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:ring-offset-1"
-            placeholder="Ex: 102"
-            required
-          />
-        </div>
-      </section>
-
-      {/* Cliente */}
-      <section className="flex gap-3">
-        <div className="flex-1 space-y-1">
-          <label htmlFor="customer-name" className="text-sm font-medium">Seu Nome</label>
-          <input
-            id="customer-name"
-            type="text"
-            value={customerName}
-            onChange={(e) => setCustomerName(e.target.value)}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:ring-offset-1"
-            placeholder="Ex: João Silva"
-            required
-          />
-        </div>
-        <div className="flex-1 space-y-1">
-          <label htmlFor="customer-phone" className="text-sm font-medium">WhatsApp</label>
-          <input
-            id="customer-phone"
-            type="tel"
-            value={customerPhone}
-            onChange={(e) => {
-              // Brazilian phone mask: (XX) XXXXX-XXXX (11 digits)
-              const digits = e.target.value.replace(/\D/g, "").slice(0, 11);
-              let formatted = "";
-              if (digits.length === 0) {
-                formatted = "";
-              } else if (digits.length <= 2) {
-                formatted = `(${digits}`;
-              } else if (digits.length <= 7) {
-                formatted = `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-              } else {
-                formatted = `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
-              }
-              setCustomerPhone(formatted);
-            }}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:ring-offset-1"
-            placeholder="(11) 99999-9999"
-            required
-          />
-        </div>
-      </section>
-
-      {/* Menu */}
-      <section className="space-y-3">
-        <h2 className="font-semibold text-lg text-primary">Escolha os Drinks</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {receipts.map((drink, idx) => (
-            <div
-              key={`${drink.name}-${drink.size}`}
-              className="border rounded-xl p-4 space-y-3 hover:shadow-lg hover:border-accent transition bg-card"
-            >
-              <div>
-                <p className="font-medium">{drink.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {drink.size}ml — {formatCurrency(Number(drink.value))}
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setCustomizingIndex({ drinkIndex: idx })}
-              >
-                Adicionar
-              </Button>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Carrinho */}
-      {cart.length > 0 ? (
-        <section className="space-y-2">
-          <h2 className="font-semibold text-lg text-primary">
-            <span>🛒</span> Seu Pedido ({cart.length} {cart.length === 1 ? "item" : "itens"})
-          </h2>
-          <div className="space-y-2">
-            {cart.map((item) => {
-              const itemTotal = Number(item.drink.value) * item.quantity + calculateExtraValue(item);
-              const selectedNames: string[] = [];
-              for (const ing of item.drink.ingredients) {
-                if ("options" in ing) {
-                  const group = ing as OptionsGroupReceipt;
-                  const selArray = item.customizations[group.name] || [];
-                  selectedNames.push(...selArray);
-                } else {
-                  selectedNames.push((ing as OptionsSingle).name);
-                }
-              }
-              return (
-                <div
-                  key={item.id}
-                  className="border rounded-xl p-4 text-sm space-y-2 bg-secondary/20"
-                >
-                  <div className="flex justify-between items-start gap-3">
-                    <div>
-                      <p className="font-medium">
-                        {item.drink.name} ({item.drink.size}ml)
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {selectedNames.join(", ")}
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-primary">
-                          {formatCurrency(itemTotal)}
-                        </span>
-                        <div className="flex items-center border rounded-md">
-                          <button
-                            type="button"
-                            onClick={() => updateQuantity(item.id, -1)}
-                            className="px-2 py-0.5 text-sm font-bold hover:bg-muted"
-                            disabled={item.quantity <= 1}
-                          >
-                            −
-                          </button>
-                          <span className="px-2 text-sm">{item.quantity}</span>
-                          <button
-                            type="button"
-                            onClick={() => updateQuantity(item.id, 1)}
-                            className="px-2 py-0.5 text-sm font-bold hover:bg-muted"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeFromCart(item.id)}
-                        className="text-xs text-red-500 hover:text-red-700 underline"
-                      >
-                        Remover
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+    <>
+      <form className="max-w-xl mx-auto p-4 space-y-6" onSubmit={handleSubmit}>
+        {/* Toast */}
+        {toast && (
+          <div
+            className={cn(
+              "fixed top-4 right-4 z-50 px-4 py-2 rounded-lg shadow-lg text-sm font-medium transition",
+              toast.type === "success"
+                ? "bg-primary text-primary-foreground"
+                : "bg-destructive text-destructive-foreground",
+            )}
+          >
+            {toast.message}
           </div>
-          <div className="border-t pt-2">
-            <p className="text-xl font-bold text-right text-primary">
-              Total: {formatCurrency(totalValue)}
-            </p>
+        )}
+
+        <header className="text-center space-y-2 py-4">
+          <div className="flex items-center justify-center gap-2">
+            <span className="text-4xl">🍋</span>
+            <h1 className="text-3xl font-extrabold tracking-tight text-primary">
+              Guaraná da Sasá
+            </h1>
+            <span className="text-4xl">🥤</span>
+          </div>
+          <p className="text-muted-foreground text-sm">
+            Faça seu pedido e receba no seu apartamento
+          </p>
+        </header>
+
+        {/* Condomínio */}
+        <section className="space-y-2">
+          <h2 className="font-semibold text-lg text-primary">Condomínio</h2>
+          <div className="flex gap-2">
+            {(["Estilo Golf", "Park Golf"] as CondoType[]).map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCondo(c)}
+                className={cn(
+                  "flex-1 py-2 px-4 rounded-lg border text-center transition",
+                  condo === c
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "border-border hover:bg-muted",
+                )}
+              >
+                {c}
+              </button>
+            ))}
           </div>
         </section>
-      ) : (
-        <div className="text-center py-8 bg-secondary/10 rounded-lg border border-dashed">
-          <p className="text-muted-foreground">Seu carrinho está vazio.</p>
-          <p className="text-sm text-muted-foreground">
-            Adicione alguns drinks acima para continuar.
-          </p>
+
+        {/* Localização */}
+        <section className="flex gap-3">
+          <div className="flex-1 space-y-1">
+            <label htmlFor="block-input" className="text-sm font-medium">
+              Bloco
+            </label>
+            <input
+              id="block-input"
+              type="number"
+              inputMode="numeric"
+              pattern="[0-9]{1,2}"
+              max={99}
+              value={block}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, "").slice(0, 2);
+                setBlock(val);
+              }}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:ring-offset-1"
+              placeholder="Ex: 03"
+              required
+            />
+          </div>
+          <div className="flex-1 space-y-1">
+            <label htmlFor="apartment-input" className="text-sm font-medium">
+              Apartamento
+            </label>
+            <input
+              id="apartment-input"
+              type="number"
+              inputMode="numeric"
+              pattern="[0-9]{1,3}"
+              max={999}
+              value={apartment}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, "").slice(0, 3);
+                setApartment(val);
+              }}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:ring-offset-1"
+              placeholder="Ex: 102"
+              required
+            />
+          </div>
+        </section>
+
+        {/* Cliente */}
+        <section className="flex gap-3">
+          <div className="flex-1 space-y-1">
+            <label htmlFor="customer-name" className="text-sm font-medium">
+              Seu Nome
+            </label>
+            <input
+              id="customer-name"
+              type="text"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:ring-offset-1"
+              placeholder="Ex: João Silva"
+              required
+            />
+          </div>
+          <div className="flex-1 space-y-1">
+            <label htmlFor="customer-phone" className="text-sm font-medium">
+              WhatsApp
+            </label>
+            <input
+              id="customer-phone"
+              type="tel"
+              value={customerPhone}
+              onChange={(e) => {
+                // Brazilian phone mask: (XX) XXXXX-XXXX (11 digits)
+                const digits = e.target.value.replace(/\D/g, "").slice(0, 11);
+                let formatted = "";
+                if (digits.length === 0) {
+                  formatted = "";
+                } else if (digits.length <= 2) {
+                  formatted = `(${digits}`;
+                } else if (digits.length <= 7) {
+                  formatted = `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+                } else {
+                  formatted = `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+                }
+                setCustomerPhone(formatted);
+              }}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:ring-offset-1"
+              placeholder="(11) 99999-9999"
+              required
+            />
+          </div>
+        </section>
+
+        {/* Menu */}
+        <section className="space-y-3">
+          <h2 className="font-semibold text-lg text-primary">
+            Escolha os Drinks
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {receipts.map((drink, idx) => (
+              <div
+                key={`${drink.name}-${drink.size}`}
+                className="border rounded-xl p-4 space-y-3 hover:shadow-lg hover:border-accent transition bg-card"
+              >
+                <div>
+                  <p className="font-medium">{drink.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {drink.size}ml — {formatCurrency(Number(drink.value))}
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCustomizingIndex({ drinkIndex: idx })}
+                >
+                  Adicionar
+                </Button>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Carrinho */}
+        {cart.length > 0 ? (
+          <section className="space-y-2">
+            <h2 className="font-semibold text-lg text-primary">
+              <span>🛒</span> Seu Pedido ({cart.length}{" "}
+              {cart.length === 1 ? "item" : "itens"})
+            </h2>
+            <div className="space-y-2">
+              {cart.map((item) => {
+                const itemTotal =
+                  Number(item.drink.value) * item.quantity +
+                  calculateExtraValue(item);
+                const selectedNames: string[] = [];
+                for (const ing of item.drink.ingredients) {
+                  if ("options" in ing) {
+                    const group = ing as OptionsGroupReceipt;
+                    const selArray = item.customizations[group.name] || [];
+                    selectedNames.push(...selArray);
+                  } else {
+                    selectedNames.push((ing as OptionsSingle).name);
+                  }
+                }
+                return (
+                  <div
+                    key={item.id}
+                    className="border rounded-xl p-4 text-sm space-y-2 bg-secondary/20"
+                  >
+                    <div className="flex justify-between items-start gap-3">
+                      <div>
+                        <p className="font-medium">
+                          {item.drink.name} ({item.drink.size}ml)
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {selectedNames.join(", ")}
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-primary">
+                            {formatCurrency(itemTotal)}
+                          </span>
+                          <div className="flex items-center border rounded-md">
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(item.id, -1)}
+                              className="px-2 py-0.5 text-sm font-bold hover:bg-muted"
+                              disabled={item.quantity <= 1}
+                            >
+                              −
+                            </button>
+                            <span className="px-2 text-sm">
+                              {item.quantity}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(item.id, 1)}
+                              className="px-2 py-0.5 text-sm font-bold hover:bg-muted"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeFromCart(item.id)}
+                          className="text-xs text-red-500 hover:text-red-700 underline"
+                        >
+                          Remover
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="border-t pt-2">
+              <p className="text-xl font-bold text-right text-primary">
+                Total: {formatCurrency(totalValue)}
+              </p>
+            </div>
+          </section>
+        ) : (
+          <div className="text-center py-8 bg-secondary/10 rounded-lg border border-dashed">
+            <p className="text-muted-foreground">Seu carrinho está vazio.</p>
+            <p className="text-sm text-muted-foreground">
+              Adicione alguns drinks acima para continuar.
+            </p>
+          </div>
+        )}
+
+
+        {/* Customization Modal */}
+        {customizingIndex && (
+          <DrinkCustomizer
+            drink={receipts[customizingIndex.drinkIndex]}
+            onConfirm={(customizations) =>
+              addToCart(customizingIndex.drinkIndex, customizations)
+            }
+            onCancel={() => setCustomizingIndex(null)}
+          />
+        )}
+      {/* Floating submit button */}
+      {cart.length > 0 && (
+        <div className="fixed bottom-6 right-6 z-40">
+          <Button
+            className={cn(
+              "py-6 px-8 text-lg font-bold shadow-xl",
+              "bg-accent text-accent-foreground hover:bg-accent/90",
+              "rounded-full border-2 border-background",
+              !isValid && "opacity-50 cursor-not-allowed",
+            )}
+            disabled={!isValid}
+            type="submit"
+          >
+            <span className="flex items-center gap-2">
+              <span className="text-xl">📱</span>
+              <span>Enviar no WhatsApp</span>
+              <span className="font-mono text-sm bg-background/20 px-2 py-0.5 rounded-full">
+                {formatCurrency(totalValue)}
+              </span>
+            </span>
+          </Button>
         </div>
       )}
-
-      {/* Submit */}
-      <Button
-        className="w-full py-6 text-lg font-bold bg-accent text-accent-foreground hover:bg-accent/80"
-        disabled={!isValid}
-        type="submit"
-      >
-        Enviar Pedido via WhatsApp
-      </Button>
-
-      {/* Customization Modal */}
-      {customizingIndex && (
-        <DrinkCustomizer
-          drink={receipts[customizingIndex.drinkIndex]}
-          onConfirm={(customizations) =>
-            addToCart(customizingIndex.drinkIndex, customizations)
-          }
-          onCancel={() => setCustomizingIndex(null)}
-        />
-      )}
-    </form>
+      </form>
+    </>
   );
 }
 
@@ -537,7 +579,10 @@ function DrinkCustomizer({ drink, onConfirm, onCancel }: DrinkCustomizerProps) {
 
   // Build group map and determine if group is exclusive (all options have no value)
   const groupInfo = useMemo(() => {
-    const map = new Map<string, { group: OptionsGroupReceipt; exclusive: boolean }>();
+    const map = new Map<
+      string,
+      { group: OptionsGroupReceipt; exclusive: boolean }
+    >();
     for (const ing of drink.ingredients) {
       if ("options" in ing) {
         const group = ing as OptionsGroupReceipt;
@@ -560,7 +605,9 @@ function DrinkCustomizer({ drink, onConfirm, onCancel }: DrinkCustomizerProps) {
       } else {
         // Multiple selection: toggle
         const exists = current.includes(optionName);
-        const updated = exists ? current.filter((n) => n !== optionName) : [...current, optionName];
+        const updated = exists
+          ? current.filter((n) => n !== optionName)
+          : [...current, optionName];
         return { ...prev, [groupName]: updated };
       }
     });
@@ -581,7 +628,11 @@ function DrinkCustomizer({ drink, onConfirm, onCancel }: DrinkCustomizerProps) {
   const total = Number(drink.value) + extra;
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true">
+    <div
+      className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+      role="dialog"
+      aria-modal="true"
+    >
       <div className="bg-background rounded-xl p-6 w-full max-w-md space-y-4 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-start">
           <div>
@@ -601,7 +652,8 @@ function DrinkCustomizer({ drink, onConfirm, onCancel }: DrinkCustomizerProps) {
         </div>
 
         {drink.ingredients.map((ing) => {
-          const keyName = typeof ing === 'object' && 'name' in ing ? ing.name : String(ing);
+          const keyName =
+            typeof ing === "object" && "name" in ing ? ing.name : String(ing);
           if ("options" in ing) {
             const group = ing as OptionsGroupReceipt;
             const info = groupInfo.get(group.name);
@@ -628,7 +680,10 @@ function DrinkCustomizer({ drink, onConfirm, onCancel }: DrinkCustomizerProps) {
                         <span>
                           {opt.name}
                           {opt.value !== undefined && (
-                            <span className="text-muted-foreground"> (+{formatCurrency(Number(opt.value))})</span>
+                            <span className="text-muted-foreground">
+                              {" "}
+                              (+{formatCurrency(Number(opt.value))})
+                            </span>
                           )}
                         </span>
                       </label>

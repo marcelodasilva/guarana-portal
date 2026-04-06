@@ -1,6 +1,6 @@
-import { receipts } from "@/lib/drinks"
-import OrderForm from "./ui/form"
+import { receipts } from "@/lib/drinks";
+import OrderForm from "./ui/form";
 
 export default function Home() {
-    return <OrderForm receipts={receipts} />
+  return <OrderForm receipts={receipts} />;
 }
