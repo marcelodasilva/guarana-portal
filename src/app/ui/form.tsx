@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useMemo } from "react";
+import { useCallback, useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type {
@@ -24,6 +24,8 @@ type CondoType = "Estilo Golf" | "Park Golf";
 
 type Toast = { message: string; type: "success" | "error" } | null;
 
+const STORAGE_PREFIX = "@guaranadasasa/";
+
 export default function OrderForm({ receipts }: OrderFormProps) {
   const [condo, setCondo] = useState<CondoType | null>(null);
   const [block, setBlock] = useState("");
@@ -35,6 +37,74 @@ export default function OrderForm({ receipts }: OrderFormProps) {
     drinkIndex: number;
   } | null>(null);
   const [toast, setToast] = useState<Toast>(null);
+
+  // Load persisted state on mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const savedCondo = localStorage.getItem(STORAGE_PREFIX + "condo");
+      const savedBlock = localStorage.getItem(STORAGE_PREFIX + "block") ?? "";
+      const savedApartment = localStorage.getItem(STORAGE_PREFIX + "apartment") ?? "";
+      const savedName = localStorage.getItem(STORAGE_PREFIX + "customerName") ?? "";
+      const savedPhone = localStorage.getItem(STORAGE_PREFIX + "customerPhone") ?? "";
+
+      let loaded = false;
+      if (savedCondo) {
+        setCondo(savedCondo as CondoType);
+        loaded = true;
+      }
+      if (savedBlock) {
+        setBlock(savedBlock);
+        loaded = true;
+      }
+      if (savedApartment) {
+        setApartment(savedApartment);
+        loaded = true;
+      }
+      if (savedName) {
+        setCustomerName(savedName);
+        loaded = true;
+      }
+      if (savedPhone) {
+        setCustomerPhone(savedPhone);
+        loaded = true;
+      }
+
+      if (loaded) {
+        setToast({ message: "Dados recuperados!", type: "success" });
+        setTimeout(() => setToast(null), 2500);
+      }
+    } catch (e) {
+      console.warn("Failed to load from localStorage", e);
+    }
+  }, []);
+
+  // Persist state changes to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_PREFIX + "condo", condo ?? "");
+    } catch (e) {}
+  }, [condo]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_PREFIX + "block", block);
+    } catch (e) {}
+  }, [block]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_PREFIX + "apartment", apartment);
+    } catch (e) {}
+  }, [apartment]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_PREFIX + "customerName", customerName);
+    } catch (e) {}
+  }, [customerName]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_PREFIX + "customerPhone", customerPhone);
+    } catch (e) {}
+  }, [customerPhone]);
 
   const addToCart = useCallback(
     (drinkIndex: number, customizations: Record<string, string[]>) => {
@@ -214,24 +284,36 @@ export default function OrderForm({ receipts }: OrderFormProps) {
       {/* Localização */}
       <section className="flex gap-3">
         <div className="flex-1 space-y-1">
-          <label htmlFor="block-input" className="text-sm font-medium">Bloco</label>
+          <label htmlFor="block-input" className="text-sm font-medium">Bloco (2 dígitos)</label>
           <input
             id="block-input"
-            type="text"
+            type="number"
+            inputMode="numeric"
+            pattern="[0-9]{1,2}"
+            max={99}
             value={block}
-            onChange={(e) => setBlock(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value.replace(/\D/g, "").slice(0, 2);
+              setBlock(val);
+            }}
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:ring-offset-1"
             placeholder="Ex: 03"
             required
           />
         </div>
         <div className="flex-1 space-y-1">
-          <label htmlFor="apartment-input" className="text-sm font-medium">Apartamento</label>
+          <label htmlFor="apartment-input" className="text-sm font-medium">Apartamento (até 3 dígitos)</label>
           <input
             id="apartment-input"
-            type="text"
+            type="number"
+            inputMode="numeric"
+            pattern="[0-9]{1,3}"
+            max={999}
             value={apartment}
-            onChange={(e) => setApartment(e.target.value)}
+            onChange={(e) => {
+              const val = e.target.value.replace(/\D/g, "").slice(0, 3);
+              setApartment(val);
+            }}
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:ring-offset-1"
             placeholder="Ex: 102"
             required
@@ -259,9 +341,23 @@ export default function OrderForm({ receipts }: OrderFormProps) {
             id="customer-phone"
             type="tel"
             value={customerPhone}
-            onChange={(e) => setCustomerPhone(e.target.value)}
+            onChange={(e) => {
+              // Brazilian phone mask: (XX) XXXXX-XXXX (11 digits)
+              const digits = e.target.value.replace(/\D/g, "").slice(0, 11);
+              let formatted = "";
+              if (digits.length === 0) {
+                formatted = "";
+              } else if (digits.length <= 2) {
+                formatted = `(${digits}`;
+              } else if (digits.length <= 7) {
+                formatted = `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+              } else {
+                formatted = `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+              }
+              setCustomerPhone(formatted);
+            }}
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-ring focus:ring-offset-1"
-            placeholder="Ex: 11999999999"
+            placeholder="(11) 99999-9999"
             required
           />
         </div>
