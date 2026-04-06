@@ -2,6 +2,7 @@
   "name": "guarana-delivery-portal",
   "version": "0.1.0",
   "private": true,
+  "homepage": "guarana.marcelodasilva.dev",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
